@@ -1,17 +1,25 @@
-# guia_turismo
+# Rota Ciano
 
-A new Flutter project.
+Aplicativo Flutter de guia de turismo. Após entrar com uma conta existente, é
+possível consultar os lugares publicados pela API, pesquisar por nome ou
+categoria, ver descrição e coordenadas, atualizar a lista e cadastrar novos
+destinos. A interface usa tema escuro com ciano como cor de destaque.
 
-## Getting Started
+## Executar
 
-This project is a starting point for a Flutter application.
+```bash
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## API
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+O aplicativo usa `https://guiaturismo.onrender.com`:
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- `POST /login` para autenticar e obter o token da sessão.
+- `GET /lugares` para consultar os lugares.
+- `POST /lugares` para cadastrar um lugar autenticado.
+
+O token e os dados básicos do usuário ficam armazenados localmente para manter
+a sessão entre aberturas do aplicativo. A opção **Sair da conta** encerra a
+sessão e remove esses dados locais.

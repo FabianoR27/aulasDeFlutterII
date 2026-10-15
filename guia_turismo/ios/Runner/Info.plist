@@ -66,5 +66,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- permissões de acesso a câmera e biblioteca de fotos -->
+	<key>NSCameraUsageDescription</key>
+	<string>Este aplicativo precisa acessar a câmera para tirar fotos.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Este aplicativo precisa acessar a biblioteca de fotos para selecionar imagens.</string>
 </dict>
 </plist>
