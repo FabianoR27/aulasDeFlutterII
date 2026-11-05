@@ -24,11 +24,10 @@ class Inicializar extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LugaresController()),
         ChangeNotifierProvider(create: (_) => CameraController()),
         ChangeNotifierProvider(create: (_) => ThemeController()),
-        
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: 'cadastrar_lugar',
+        initialRoute: 'cadastrar_lugar', //qualquer coisa, apagar esta linha depois
         routes: {
           'login': (context) => const LoginScreen(),
           'lugares': (context) => const LugaresScreen(),
@@ -65,7 +64,10 @@ class Inicializar extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF22D3EE), width: 1.5),
+              borderSide: const BorderSide(
+                color: Color(0xFF22D3EE),
+                width: 1.5,
+              ),
             ),
           ),
           snackBarTheme: SnackBarThemeData(
@@ -117,7 +119,9 @@ class _AuthGateState extends State<AuthGate> {
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text('Não foi possível recuperar sua sessão: ${snapshot.error}'),
+                child: Text(
+                  'Não foi possível recuperar sua sessão: ${snapshot.error}',
+                ),
               ),
             ),
           );

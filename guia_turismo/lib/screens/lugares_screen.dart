@@ -5,6 +5,7 @@ import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:guia_turismo/screens/cadastrar_lugar_screen.dart';
 import 'package:guia_turismo/screens/login_screen.dart';
+import 'package:guia_turismo/screens/mapa_screen.dart';
 import 'package:guia_turismo/services/session_service.dart';
 
 class LugaresScreen extends StatefulWidget {
@@ -29,14 +30,18 @@ class _LugaresScreenState extends State<LugaresScreen> {
 
   Future<void> _abrirCadastro() async {
     final cadastrado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => const CadastrarLugarScreen(),
-      ),
+      MaterialPageRoute<bool>(builder: (_) => const CadastrarLugarScreen()),
     );
     if (!mounted) return;
     if (cadastrado == true) {
       await context.read<LugaresController>().listarLugares();
     }
+  }
+
+  // Abre o mapa com os lugares já carregados pelo controller.
+  void _abrirMapa() {
+    Navigator.of(context)
+        .push(MaterialPageRoute<void>(builder: (_) => const MapaScreen()));
   }
 
   Future<void> _sair() async {
@@ -86,10 +91,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                 const SizedBox(height: 18),
                 Text(
                   lugar.descricao,
-                  style: const TextStyle(
-                    color: Color(0xFFCBD5E1),
-                    height: 1.5,
-                  ),
+                  style: const TextStyle(color: Color(0xFFCBD5E1), height: 1.5),
                 ),
               ],
               const SizedBox(height: 18),
@@ -230,10 +232,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                       height: 1.4,
                     ),
                   ),
-                  if (acao != null) ...[
-                    const SizedBox(height: 18),
-                    acao,
-                  ],
+                  if (acao != null) ...[const SizedBox(height: 18), acao],
                 ],
               ),
             ),
@@ -267,6 +266,11 @@ class _LugaresScreenState extends State<LugaresScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Ver mapa',
+            onPressed: _abrirMapa,
+            icon: const Icon(Icons.map_outlined),
+          ),
           IconButton(
             tooltip: 'Sair da conta',
             onPressed: _sair,
@@ -400,43 +404,42 @@ class _LugaresScreenState extends State<LugaresScreen> {
                         ),
                       )
                     : controller.erro.isNotEmpty && controller.lugares.isEmpty
-                        ? _estadoVazio(
-                            icone: Icons.cloud_off_rounded,
-                            titulo: 'Não foi possível carregar',
-                            mensagem: controller.erro,
-                            acao: OutlinedButton.icon(
-                              onPressed: controller.listarLugares,
-                              icon: const Icon(Icons.refresh_rounded),
-                              label: const Text('Tentar novamente'),
-                            ),
-                          )
-                        : lugaresFiltrados.isEmpty
-                            ? _estadoVazio(
-                                icone: _busca.isEmpty
-                                    ? Icons.travel_explore_rounded
-                                    : Icons.search_off_rounded,
-                                titulo: _busca.isEmpty
-                                    ? 'Ainda não há lugares'
-                                    : 'Nenhum resultado',
-                                mensagem: _busca.isEmpty
-                                    ? 'Cadastre o primeiro destino e comece a montar seu guia.'
-                                    : 'Tente buscar por outro nome ou categoria.',
-                                acao: _busca.isEmpty
-                                    ? OutlinedButton.icon(
-                                        onPressed: _abrirCadastro,
-                                        icon: const Icon(Icons.add_rounded),
-                                        label: const Text('Adicionar lugar'),
-                                      )
-                                    : null,
+                    ? _estadoVazio(
+                        icone: Icons.cloud_off_rounded,
+                        titulo: 'Não foi possível carregar',
+                        mensagem: controller.erro,
+                        acao: OutlinedButton.icon(
+                          onPressed: controller.listarLugares,
+                          icon: const Icon(Icons.refresh_rounded),
+                          label: const Text('Tentar novamente'),
+                        ),
+                      )
+                    : lugaresFiltrados.isEmpty
+                    ? _estadoVazio(
+                        icone: _busca.isEmpty
+                            ? Icons.travel_explore_rounded
+                            : Icons.search_off_rounded,
+                        titulo: _busca.isEmpty
+                            ? 'Ainda não há lugares'
+                            : 'Nenhum resultado',
+                        mensagem: _busca.isEmpty
+                            ? 'Cadastre o primeiro destino e comece a montar seu guia.'
+                            : 'Tente buscar por outro nome ou categoria.',
+                        acao: _busca.isEmpty
+                            ? OutlinedButton.icon(
+                                onPressed: _abrirCadastro,
+                                icon: const Icon(Icons.add_rounded),
+                                label: const Text('Adicionar lugar'),
                               )
-                            : ListView.builder(
-                                physics: const AlwaysScrollableScrollPhysics(),
-                                padding:
-                                    const EdgeInsets.fromLTRB(20, 0, 20, 100),
-                                itemCount: lugaresFiltrados.length,
-                                itemBuilder: (context, index) =>
-                                    _buildLugarCard(lugaresFiltrados[index]),
-                              ),
+                            : null,
+                      )
+                    : ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                        itemCount: lugaresFiltrados.length,
+                        itemBuilder: (context, index) =>
+                            _buildLugarCard(lugaresFiltrados[index]),
+                      ),
               ),
             ),
           ],

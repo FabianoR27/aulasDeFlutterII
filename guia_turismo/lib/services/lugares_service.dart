@@ -1,12 +1,38 @@
 import 'dart:convert';
+
+import 'package:guia_turismo/models/categoria_model.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:http/http.dart' as http;
 
 class LugaresService {
-  final String url = 'https://guiaturismo.onrender.com/lugares';
+  final String baseUrl = 'https://guiaturismo.onrender.com';
+  String get url => '$baseUrl/lugares';
   int pagina = 1;
   int limite = 10;
 
+  // Busca as categorias válidas para relacionar o novo lugar à API.
+  Future<List<CategoriaModel>> buscarCategorias() async {
+    final response = await http.get(Uri.parse('$baseUrl/categorias'));
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Falha ao carregar as categorias (${response.statusCode}).',
+      );
+    }
+
+    final decoded = json.decode(response.body);
+    if (decoded is! Map<String, dynamic> || decoded['data'] is! List) {
+      throw const FormatException('Resposta de categorias inválida.');
+    }
+
+    return (decoded['data'] as List).map((item) {
+      if (item is! Map<String, dynamic>) {
+        throw const FormatException('Uma categoria recebida é inválida.');
+      }
+      return CategoriaModel.fromJson(item);
+    }).toList();
+  }
+
+  // Carrega a página atual de lugares e converte a resposta para os modelos.
   Future<List<LugaresModel>> buscarLugares() async {
     try {
       final response = await http.get(
@@ -29,7 +55,9 @@ class LugaresService {
 
       return data.map((item) {
         if (item is! Map<String, dynamic>) {
-          throw const FormatException('Um item da lista de lugares é inválido.');
+          throw const FormatException(
+            'Um item da lista de lugares é inválido.',
+          );
         }
         return LugaresModel.fromJson(item);
       }).toList();
@@ -38,6 +66,7 @@ class LugaresService {
     }
   }
 
+  // Envia um lugar autenticado e retorna a mensagem informada pela API.
   Future<String> cadastrarLugar(LugaresModel dados, String token) async {
     if (token.isEmpty) {
       return 'Token de autenticação não fornecido.';
