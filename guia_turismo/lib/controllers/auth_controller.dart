@@ -1,30 +1,43 @@
-import 'package:guia_turismo/services/auth_service.dart';
-import 'package:guia_turismo/services/session_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthController extends ChangeNotifier {
-  int idLogado = 0;
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  Future<void>? _googleSignInInitialization;
+
   bool carregando = false;
   String erro = '';
 
-  Future<bool> autenticarUsuario(String email, String senha) async {
+  User? get usuario => _firebaseAuth.currentUser;
+
+  Future<void> entrarComGoogle() async {
+    if (carregando) return;
     carregando = true;
     erro = '';
     notifyListeners();
+
     try {
-      final dados = await AuthService().autenticar(email, senha);
-      final token = dados['token']?.toString();
-      final usuario = dados['usuario'];
-      if (token == null || token.isEmpty || usuario is! Map<String, dynamic>) {
-        erro = 'Login ou senha inválidos!';
-        return false;
+      if (kIsWeb) {
+        await _firebaseAuth.signInWithPopup(GoogleAuthProvider());
+      } else {
+        _googleSignInInitialization ??= _googleSignIn.initialize(
+          serverClientId: '928335484490-uhlc4pg87p599h8vng97plcp47i26e8i.apps.googleusercontent.com',
+        );
+        await _googleSignInInitialization;
+
+        final conta = await _googleSignIn.authenticate();
+        final idToken = conta.authentication.idToken;
+        if (idToken == null || idToken.isEmpty) {
+          throw StateError('O Google não retornou um token de autenticação.');
+        }
+
+        final credencial = GoogleAuthProvider.credential(idToken: idToken);
+        await _firebaseAuth.signInWithCredential(credencial);
       }
-      await SessionService().salvarToken(token);
-      await SessionService().salvarUsuario(usuario);
-      return true;
     } catch (e) {
-      erro = 'Erro: ${e.toString()}';
-      return false;
+      erro = 'Não foi possível entrar com o Google: $e';
     } finally {
       carregando = false;
       notifyListeners();
@@ -32,6 +45,10 @@ class AuthController extends ChangeNotifier {
   }
 
   Future<void> deslogarUsuario() async {
-    await SessionService().logout();
+    try {
+      if (!kIsWeb) await _googleSignIn.signOut();
+    } finally {
+      await _firebaseAuth.signOut();
+    }
   }
 }

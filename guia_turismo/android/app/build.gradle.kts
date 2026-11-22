@@ -1,8 +1,12 @@
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
 
 android {
     namespace = "com.example.guia_turismo"
@@ -16,7 +20,10 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.guia_turismo"
+        applicationId = "com.example.login"
+        manifestPlaceholders.putAll(
+            mapOf("appAuthRedirectScheme" to "com.guiaturismo.maps")
+        )
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -27,6 +34,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.example.login"
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.guiaturismo.maps"
     }
 
     buildTypes {
@@ -46,4 +55,18 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+  // Import the Firebase BoM
+  implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+
+
+  // TODO: Add the dependencies for Firebase products you want to use
+  // When using the BoM, don't specify versions in Firebase dependencies
+  implementation("com.google.firebase:firebase-analytics")
+
+
+  // Add the dependencies for any other desired Firebase products
+  // https://firebase.google.com/docs/android/setup#available-libraries
 }

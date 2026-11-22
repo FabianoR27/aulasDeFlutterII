@@ -1,34 +1,34 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:flutter_appauth/flutter_appauth.dart';
 
 class AuthService {
-  final String url = 'https://guia.liliaborges.com.br/api-docs';
+  final FlutterAppAuth _appAuth = const FlutterAppAuth();
 
-  Future<Map<String, dynamic>> autenticar(String email, String senha) async {
-    try {
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({"email": email, "senha": senha}),
+  // Dados gerados no OpenStreetMap
+  final String _clientId = 'FsjB0m9plLoZYIZWLRO-8RnuKcNtDr_HXDJ2bM-HAMU';
+  final String _redirectUrl = 'com.guiaturismo.maps:/oauth2redirect';
+
+  // Endpoints oficiais do OpenStreetMap
+  final AuthorizationServiceConfiguration _serviceConfig =
+      const AuthorizationServiceConfiguration(
+        authorizationEndpoint: 'https://www.openstreetmap.org/oauth2/authorize',
+        tokenEndpoint: 'https://www.openstreetmap.org/oauth2/token',
       );
-      final decoded = jsonDecode(response.body);
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('Resposta inválida do servidor.');
-      }
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = decoded['data'];
-        if (data is Map<String, dynamic>) return data;
-        throw const FormatException('Dados de autenticação ausentes.');
-      }
-      if (response.statusCode >= 400 && response.statusCode < 500) {
-        return <String, dynamic>{};
-      }
-      throw Exception(
-        decoded['message']?.toString() ??
-            'Falha ao autenticar (${response.statusCode}).',
-      );
-    } catch (e) {
-      rethrow;
+
+  Future<String> autenticarComOSM() async {
+    final result = await _appAuth.authorizeAndExchangeCode(
+      AuthorizationTokenRequest(
+        _clientId,
+        _redirectUrl,
+        serviceConfiguration: _serviceConfig,
+        scopes: ['write_api'],
+      ),
+    );
+
+    final token = result.accessToken;
+    if (token == null || token.isEmpty) {
+      throw StateError('O OpenStreetMap não retornou um token de escrita.');
     }
+
+    return token;
   }
 }

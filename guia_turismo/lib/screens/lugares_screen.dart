@@ -4,9 +4,7 @@ import 'package:guia_turismo/controllers/auth_controller.dart';
 import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:guia_turismo/screens/cadastrar_lugar_screen.dart';
-import 'package:guia_turismo/screens/login_screen.dart';
 import 'package:guia_turismo/screens/mapa_screen.dart';
-import 'package:guia_turismo/services/session_service.dart';
 
 class LugaresScreen extends StatefulWidget {
   const LugaresScreen({super.key});
@@ -17,12 +15,10 @@ class LugaresScreen extends StatefulWidget {
 
 class _LugaresScreenState extends State<LugaresScreen> {
   String _busca = '';
-  late final Future<String> _nomeFuture;
 
   @override
   void initState() {
     super.initState();
-    _nomeFuture = SessionService().pegarNome();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<LugaresController>().listarLugares();
     });
@@ -47,11 +43,6 @@ class _LugaresScreenState extends State<LugaresScreen> {
   Future<void> _sair() async {
     try {
       await context.read<AuthController>().deslogarUsuario();
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-        (_) => false,
-      );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -245,6 +236,8 @@ class _LugaresScreenState extends State<LugaresScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LugaresController>();
+    final nome =
+        context.watch<AuthController>().usuario?.displayName?.trim() ?? '';
     final lugaresFiltrados = controller.lugares.where((lugar) {
       final termo = _busca.trim().toLowerCase();
       return termo.isEmpty ||
@@ -299,19 +292,13 @@ class _LugaresScreenState extends State<LugaresScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FutureBuilder<String>(
-                    future: _nomeFuture,
-                    builder: (context, snapshot) {
-                      final nome = snapshot.data?.trim() ?? '';
-                      return Text(
-                        nome.isEmpty ? 'Descubra novos lugares' : 'Olá, $nome',
-                        style: const TextStyle(
-                          color: Color(0xFFF1F5F9),
-                          fontSize: 25,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      );
-                    },
+                  Text(
+                    nome.isEmpty ? 'Descubra novos lugares' : 'Olá, $nome',
+                    style: const TextStyle(
+                      color: Color(0xFFF1F5F9),
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 7),
                   const Text(

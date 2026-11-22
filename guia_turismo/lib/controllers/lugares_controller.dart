@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
+import 'package:guia_turismo/services/auth_service.dart';
 import 'package:guia_turismo/services/lugares_service.dart';
-import 'package:guia_turismo/services/session_service.dart';
+import 'package:guia_turismo/services/osm_service.dart';
 
 class LugaresController extends ChangeNotifier {
   bool carregando = false;
@@ -28,14 +30,18 @@ class LugaresController extends ChangeNotifier {
 
   // Método para cadastrar um novo lugar
   Future<String> cadastrarLugar(LugaresModel dados) async {
-    final token = await SessionService().pegarToken() ?? ''; // Obtém o token de autenticação
     carregando = true;
     erro = '';
     notifyListeners();
+
     try {
-      final lugaresService = LugaresService();
-      final resposta = await lugaresService.cadastrarLugar(dados, token);
-      return resposta;
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw StateError('Faça login com o Google para cadastrar um lugar.');
+      }
+
+      final token = await AuthService().autenticarComOSM();
+      final idLocal = await OsmService().cadastrarLugar(dados, token);
+      return 'Local cadastrado no OpenStreetMap. ID do ponto: $idLocal';
     } catch (e) {
       erro = 'Erro ao cadastrar o lugar: $e';
       return erro;

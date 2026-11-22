@@ -8,7 +8,7 @@ class LugaresService {
   final String baseUrl = 'https://guiaturismo.onrender.com';
   String get url => '$baseUrl/lugares';
   int pagina = 1;
-  int limite = 10;
+  int limite = 1000;
 
   // Busca as categorias válidas para relacionar o novo lugar à API.
   Future<List<CategoriaModel>> buscarCategorias() async {
@@ -68,19 +68,28 @@ class LugaresService {
 
   // Envia um lugar autenticado e retorna a mensagem informada pela API.
   Future<String> cadastrarLugar(LugaresModel dados, String token) async {
+    print('1. Entrou no cadastrarLugar | token vazio? ${token.isEmpty}');
+
     if (token.isEmpty) {
       return 'Token de autenticação não fornecido.';
     }
 
     try {
+      final bodyJson = json.encode(dados.toJson());
+      print('2. Enviando POST para $url');
+      print('2.1. JSON enviado: $bodyJson');
+
       final response = await http.post(
         Uri.parse(url),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: json.encode(dados.toJson()),
+        body: bodyJson,
       );
+
+      print('3. STATUS POST /lugares: ${response.statusCode}');
+      print('3.1. BODY POST /lugares: ${response.body}');
 
       final decoded = response.body.isEmpty
           ? <String, dynamic>{}
@@ -96,6 +105,7 @@ class LugaresService {
       }
       return decoded['message']?.toString() ?? 'Lugar cadastrado com sucesso.';
     } catch (e) {
+      print('4. ERRO NO CATCH cadastrarLugar: $e');
       throw Exception('Erro ao cadastrar o lugar: $e');
     }
   }

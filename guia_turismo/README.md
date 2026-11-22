@@ -15,20 +15,24 @@ flutter pub get
 flutter run
 ```
 
-## API
+## Dados e autenticação
 
 O aplicativo usa `https://guiaturismo.onrender.com`:
 
-- `POST /login` para autenticar e obter o token da sessão.
-- `GET /lugares` para consultar os lugares.
+- `GET /lugares` para consultar os lugares exibidos na lista.
 - `GET /categorias` para carregar as categorias disponíveis no cadastro.
-- `POST /lugares` para cadastrar um lugar autenticado.
+
+O login do aplicativo continua sendo feito pelo Google/Firebase. Para cadastrar
+um local no OpenStreetMap, o aplicativo também solicita autorização da conta
+OSM com permissão de escrita (`write_api`). O cadastro cria um ponto no
+OpenStreetMap; ele não é enviado para a API do Guia de Turismo nem aparece na
+lista carregada por essa API.
 
 O mapa usa os tiles do OpenStreetMap e exibe a atribuição aos colaboradores.
 A busca de endereço envia uma consulta ao Nominatim; consulte a
 [política de uso do Nominatim](https://operations.osmfoundation.org/policies/nominatim/)
 antes de aumentar o volume de consultas.
 
-O token e os dados básicos do usuário ficam armazenados localmente para manter
-a sessão entre aberturas do aplicativo. A opção **Sair da conta** encerra a
-sessão e remove esses dados locais.
+O identificador do app e o endereço de retorno OAuth precisam estar cadastrados
+nas configurações do aplicativo OAuth no OpenStreetMap. O endereço usado é
+`com.guiaturismo.maps:/oauth2redirect`.

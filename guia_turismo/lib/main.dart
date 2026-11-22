@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:guia_turismo/controllers/auth_controller.dart';
 import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/screens/login_screen.dart';
 import 'package:guia_turismo/screens/lugares_screen.dart';
-import 'package:guia_turismo/services/session_service.dart';
 import 'package:guia_turismo/controllers/camera_controller.dart';
-import 'package:guia_turismo/screens/cadastrar_lugar_screen.dart';
 import 'package:guia_turismo/controllers/theme_controller.dart';
+import 'firebase_options.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const Inicializar());
 }
 
@@ -27,12 +30,6 @@ class Inicializar extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        initialRoute: 'cadastrar_lugar', //qualquer coisa, apagar esta linha depois
-        routes: {
-          'login': (context) => const LoginScreen(),
-          'lugares': (context) => const LugaresScreen(),
-          'cadastrar_lugar': (context) => const CadastrarLugarScreen(),
-        },
         title: 'Rota Ciano',
         theme: ThemeData(
           brightness: Brightness.dark,
@@ -94,20 +91,20 @@ class AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<AuthGate> {
-  late final Future<String?> _tokenFuture;
+  late final Stream<User?> _authChanges;
 
   @override
   void initState() {
     super.initState();
-    _tokenFuture = SessionService().pegarToken();
+    _authChanges = FirebaseAuth.instance.authStateChanges();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<String?>(
-      future: _tokenFuture,
+    return StreamBuilder<User?>(
+      stream: _authChanges,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(color: Color(0xFF22D3EE)),
@@ -120,15 +117,15 @@ class _AuthGateState extends State<AuthGate> {
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Não foi possível recuperar sua sessão: ${snapshot.error}',
+                  'Não foi possível verificar sua sessão: ${snapshot.error}',
                 ),
               ),
             ),
           );
         }
-        return snapshot.data?.isNotEmpty == true
-            ? const LugaresScreen()
-            : const LoginScreen();
+        return snapshot.data == null
+            ? const LoginScreen()
+            : const LugaresScreen();
       },
     );
   }
