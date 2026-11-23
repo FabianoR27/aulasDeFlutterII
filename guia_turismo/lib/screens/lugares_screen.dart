@@ -14,6 +14,7 @@ class LugaresScreen extends StatefulWidget {
 }
 
 class _LugaresScreenState extends State<LugaresScreen> {
+  // Texto digitado pelo usuário para filtrar a lista.
   String _busca = '';
 
   @override

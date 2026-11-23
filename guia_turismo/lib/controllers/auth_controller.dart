@@ -5,13 +5,16 @@ import 'package:google_sign_in/google_sign_in.dart';
 class AuthController extends ChangeNotifier {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  // Guarda a inicialização para não repetir a configuração do Google.
   Future<void>? _googleSignInInitialization;
 
   bool carregando = false;
   String erro = '';
 
+  // Retorna o usuário conectado no Firebase.
   User? get usuario => _firebaseAuth.currentUser;
 
+  // Abre o login do Google e cria a sessão no aplicativo.
   Future<void> entrarComGoogle() async {
     if (carregando) return;
     carregando = true;
@@ -44,6 +47,7 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  // Fecha a sessão no Google e no Firebase.
   Future<void> deslogarUsuario() async {
     try {
       if (!kIsWeb) await _googleSignIn.signOut();

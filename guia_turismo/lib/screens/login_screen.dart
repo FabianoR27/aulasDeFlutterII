@@ -5,6 +5,7 @@ import 'package:guia_turismo/controllers/auth_controller.dart';
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
+  // Mostra a tela de acesso com o estado atual do login.
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<AuthController>();

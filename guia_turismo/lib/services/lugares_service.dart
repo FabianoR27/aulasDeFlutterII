@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 
 class LugaresService {
   final String baseUrl = 'https://guiaturismo.onrender.com';
+  // Monta o endereço usado nas consultas de lugares.
   String get url => '$baseUrl/lugares';
+  // Valores usados na paginação da busca.
   int pagina = 1;
   int limite = 1000;
 
@@ -63,50 +65,6 @@ class LugaresService {
       }).toList();
     } catch (e) {
       throw Exception('Erro ao buscar os lugares: $e');
-    }
-  }
-
-  // Envia um lugar autenticado e retorna a mensagem informada pela API.
-  Future<String> cadastrarLugar(LugaresModel dados, String token) async {
-    print('1. Entrou no cadastrarLugar | token vazio? ${token.isEmpty}');
-
-    if (token.isEmpty) {
-      return 'Token de autenticação não fornecido.';
-    }
-
-    try {
-      final bodyJson = json.encode(dados.toJson());
-      print('2. Enviando POST para $url');
-      print('2.1. JSON enviado: $bodyJson');
-
-      final response = await http.post(
-        Uri.parse(url),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: bodyJson,
-      );
-
-      print('3. STATUS POST /lugares: ${response.statusCode}');
-      print('3.1. BODY POST /lugares: ${response.body}');
-
-      final decoded = response.body.isEmpty
-          ? <String, dynamic>{}
-          : json.decode(response.body);
-      if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('Resposta inválida do servidor.');
-      }
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          decoded['message']?.toString() ??
-              'Falha ao cadastrar o lugar (${response.statusCode}).',
-        );
-      }
-      return decoded['message']?.toString() ?? 'Lugar cadastrado com sucesso.';
-    } catch (e) {
-      print('4. ERRO NO CATCH cadastrarLugar: $e');
-      throw Exception('Erro ao cadastrar o lugar: $e');
     }
   }
 }

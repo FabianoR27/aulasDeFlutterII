@@ -1,4 +1,5 @@
 class LugaresModel {
+  // Dados básicos usados pela lista, pelo cadastro e pelo mapa.
   final int id;
   final String nome;
   final String? categoria;
@@ -6,7 +7,7 @@ class LugaresModel {
   final double longitude;
   final String descricao;
   final int categoriaId;
- 
+
   LugaresModel({
     required this.id,
     required this.nome,
@@ -16,7 +17,8 @@ class LugaresModel {
     required this.longitude,
     this.descricao = '',
   });
- 
+
+  // Converte o formato recebido pela API para este modelo.
   factory LugaresModel.fromJson(Map<String, dynamic> json) {
     final categoriaJson = json['categoria'];
     final categoria = categoriaJson is Map<String, dynamic>
@@ -36,16 +38,5 @@ class LugaresModel {
       descricao: json['descricao']?.toString() ?? '',
       categoriaId: (json['categoria_id'] as num?)?.toInt() ?? 0,
     );
-  }
- 
-  Map<String, dynamic> toJson() {
-    return {
-      'nome': nome,
-      'categoria': categoria,
-      'latitude': latitude,
-      'longitude': longitude,
-      'descricao': descricao,
-      'categoria_id': categoriaId,
-    };
   }
 }

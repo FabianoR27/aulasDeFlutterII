@@ -7,15 +7,17 @@ import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/screens/login_screen.dart';
 import 'package:guia_turismo/screens/lugares_screen.dart';
 import 'package:guia_turismo/controllers/camera_controller.dart';
-import 'package:guia_turismo/controllers/theme_controller.dart';
+
 import 'firebase_options.dart';
 
+// Inicializa os serviços antes de abrir a interface do aplicativo.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const Inicializar());
 }
 
+// Monta o aplicativo e deixa os controladores disponíveis nas telas.
 class Inicializar extends StatelessWidget {
   const Inicializar({super.key});
 
@@ -26,7 +28,6 @@ class Inicializar extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthController()),
         ChangeNotifierProvider(create: (_) => LugaresController()),
         ChangeNotifierProvider(create: (_) => CameraController()),
-        ChangeNotifierProvider(create: (_) => ThemeController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

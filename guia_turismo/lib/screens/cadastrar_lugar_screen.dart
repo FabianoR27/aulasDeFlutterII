@@ -128,7 +128,7 @@ class _CadastrarLugarScreenState extends State<CadastrarLugarScreen> {
     final resposta = await controller.cadastrarLugar(lugar);
     if (!mounted) return;
 
-    if (controller.erro.isNotEmpty || resposta.contains('não fornecido')) {
+    if (controller.erro.isNotEmpty) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(resposta)));
       return;

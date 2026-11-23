@@ -1,14 +1,17 @@
 import 'dart:io';
+
 import '../services/camera_service.dart';
+
 import 'package:flutter/material.dart';
 
 class CameraController extends ChangeNotifier {
   final CameraService _cameraService = CameraService();
   bool carregando = false;
   File? _imagemSelecionada;
+  // Entrega a foto selecionada para a tela.
   File? get imagemSelecionada => _imagemSelecionada;
 
-  // Método para selecionar uma imagem da galeria
+  // Escolhe uma imagem da galeria.
   Future<void> selecionarImagemDaGaleria() async {
     carregando = true;
     notifyListeners();
@@ -17,7 +20,7 @@ class CameraController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Método para tirar uma foto com a câmera
+  // Abre a câmera para tirar uma foto.
   Future<void> tirarFotoComCamera() async {
     carregando = true;
     notifyListeners();

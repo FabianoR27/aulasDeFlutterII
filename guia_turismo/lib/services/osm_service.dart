@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 class OsmService {
   static const String _baseUrl = 'https://api.openstreetmap.org/api/0.6';
 
+  // Abre um changeset, cria o ponto e fecha o changeset no final.
   Future<String> cadastrarLugar(LugaresModel lugar, String token) async {
+    // Cabeçalhos usados em todas as chamadas feitas ao OpenStreetMap.
     final headers = {
       'Authorization': 'Bearer $token',
       'Content-Type': 'text/xml',

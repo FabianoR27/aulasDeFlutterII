@@ -3,7 +3,7 @@ import 'package:flutter_appauth/flutter_appauth.dart';
 class AuthService {
   final FlutterAppAuth _appAuth = const FlutterAppAuth();
 
-  // Dados gerados no OpenStreetMap
+  // Dados cadastrados no aplicativo OAuth do OpenStreetMap.
   final String _clientId = 'FsjB0m9plLoZYIZWLRO-8RnuKcNtDr_HXDJ2bM-HAMU';
   final String _redirectUrl = 'com.guiaturismo.maps:/oauth2redirect';
 
@@ -15,6 +15,7 @@ class AuthService {
       );
 
   Future<String> autenticarComOSM() async {
+    // Solicita autorização e troca o código recebido por um token de escrita.
     final result = await _appAuth.authorizeAndExchangeCode(
       AuthorizationTokenRequest(
         _clientId,

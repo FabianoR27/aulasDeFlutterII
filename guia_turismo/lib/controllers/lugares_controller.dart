@@ -6,12 +6,16 @@ import 'package:guia_turismo/services/lugares_service.dart';
 import 'package:guia_turismo/services/osm_service.dart';
 
 class LugaresController extends ChangeNotifier {
+  // Informa às telas quando uma consulta está em andamento.
   bool carregando = false;
+  // Guarda a última mensagem de erro para mostrar ao usuário.
   String erro = '';
 
   List<LugaresModel> _lugares = [];
+  // Permite leitura da lista sem permitir alteração direta por outra tela.
   List<LugaresModel> get lugares => _lugares;
 
+  // Busca os lugares publicados pela API.
   Future<void> listarLugares() async {
     carregando = true;
     erro = '';
@@ -28,7 +32,7 @@ class LugaresController extends ChangeNotifier {
     }
   }
 
-  // Método para cadastrar um novo lugar
+  // Faz login no OpenStreetMap e cadastra o lugar nele.
   Future<String> cadastrarLugar(LugaresModel dados) async {
     carregando = true;
     erro = '';

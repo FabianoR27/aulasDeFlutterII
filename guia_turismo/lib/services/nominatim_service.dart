@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 class NominatimService {
+  // Guarda o horário da última pesquisa para respeitar o limite do serviço.
   static DateTime? _ultimaConsulta;
 
   // Consulta o serviço Nominatim por endereço ou CEP e retorna as coordenadas.
