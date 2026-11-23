@@ -10,7 +10,7 @@ class OsmService {
     final headers = {
       'Authorization': 'Bearer $token',
       'Content-Type': 'text/xml',
-      'User-Agent': 'Rota Ciano/1.0',
+      'User-Agent': 'Rota do Fabiano/1.0',
     };
     final changesetResponse = await http.put(
       Uri.parse('$_baseUrl/changeset/create'),
@@ -53,8 +53,8 @@ class OsmService {
 
   String get _xmlChangeset =>
       '<osm><changeset>'
-      '<tag k="created_by" v="Rota Ciano/1.0"/>'
-      '<tag k="comment" v="Cadastro de local pelo Rota Ciano"/>'
+      '<tag k="created_by" v="Rota do Fabiano/1.0"/>'
+      '<tag k="comment" v="Cadastro de local pelo Rota do Fabiano"/>'
       '</changeset></osm>';
 
   String _xmlLugar(LugaresModel lugar, int changesetId) {

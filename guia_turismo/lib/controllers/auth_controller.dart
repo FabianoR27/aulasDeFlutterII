@@ -36,6 +36,7 @@ class AuthController extends ChangeNotifier {
           throw StateError('O Google não retornou um token de autenticação.');
         }
 
+        // O Firebase usa o token do Google para abrir a sessão do app.
         final credencial = GoogleAuthProvider.credential(idToken: idToken);
         await _firebaseAuth.signInWithCredential(credencial);
       }

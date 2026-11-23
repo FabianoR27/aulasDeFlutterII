@@ -108,6 +108,7 @@ class _CadastrarLugarScreenState extends State<CadastrarLugarScreen> {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Junta os campos do formulário em um único objeto para o controller.
     final categoria = _categoriaSelecionada;
     if (categoria == null) return;
 
@@ -123,6 +124,7 @@ class _CadastrarLugarScreenState extends State<CadastrarLugarScreen> {
         _longitudeController.text.trim().replaceAll(',', '.'),
       ),
       descricao: _descricaoController.text.trim(),
+      foto: context.read<CameraController>().imagemSelecionada?.path,
     );
     final controller = context.read<LugaresController>();
     final resposta = await controller.cadastrarLugar(lugar);

@@ -31,7 +31,7 @@ class Inicializar extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Rota Ciano',
+        title: 'Rota do Fabiano',
         theme: ThemeData(
           brightness: Brightness.dark,
           scaffoldBackgroundColor: const Color(0xFF0B1117),

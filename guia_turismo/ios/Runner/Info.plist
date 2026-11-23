@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Guia Turismo</string>
+	<string>Rota do Fabiano</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -83,5 +83,13 @@
 	<string>Este aplicativo precisa acessar a câmera para tirar fotos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Este aplicativo precisa acessar a biblioteca de fotos para selecionar imagens.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Este aplicativo usa sua localização para mostrar a posição no mapa e calcular distâncias até os lugares.</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>waze</string>
+		<string>googlechromes</string>
+	</array>
 </dict>
 </plist>

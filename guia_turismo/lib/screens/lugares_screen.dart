@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:guia_turismo/controllers/auth_controller.dart';
@@ -5,6 +7,7 @@ import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:guia_turismo/screens/cadastrar_lugar_screen.dart';
 import 'package:guia_turismo/screens/mapa_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class LugaresScreen extends StatefulWidget {
   const LugaresScreen({super.key});
@@ -16,12 +19,16 @@ class LugaresScreen extends StatefulWidget {
 class _LugaresScreenState extends State<LugaresScreen> {
   // Texto digitado pelo usuário para filtrar a lista.
   String _busca = '';
+  bool _somenteFavoritos = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<LugaresController>().listarLugares();
+      if (mounted) {
+        context.read<LugaresController>().listarLugares();
+        context.read<LugaresController>().iniciarLocalizacao();
+      }
     });
   }
 
@@ -57,59 +64,173 @@ class _LugaresScreenState extends State<LugaresScreen> {
       context: context,
       backgroundColor: const Color(0xFF111B24),
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                lugar.nome,
-                style: const TextStyle(
-                  color: Color(0xFFF1F5F9),
-                  fontSize: 23,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                lugar.categoria?.isNotEmpty == true
-                    ? lugar.categoria!
-                    : 'Sem categoria',
-                style: const TextStyle(color: Color(0xFF22D3EE)),
-              ),
-              if (lugar.descricao.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                Text(
-                  lugar.descricao,
-                  style: const TextStyle(color: Color(0xFFCBD5E1), height: 1.5),
-                ),
-              ],
-              const SizedBox(height: 18),
-              Row(
+      builder: (sheetContext) => Consumer<LugaresController>(
+        builder: (context, controller, _) {
+          final distancia = controller.distanciaAte(lugar);
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.my_location_rounded,
-                    size: 18,
-                    color: Color(0xFF22D3EE),
-                  ),
-                  const SizedBox(width: 8),
+                  if (lugar.foto?.trim().isNotEmpty == true) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(14),
+                      child: SizedBox(
+                        height: 170,
+                        width: double.infinity,
+                        child: _fotoLugar(lugar.foto!),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   Text(
-                    '${lugar.latitude.toStringAsFixed(5)}, '
-                    '${lugar.longitude.toStringAsFixed(5)}',
-                    style: const TextStyle(color: Color(0xFF94A3B8)),
+                    lugar.nome,
+                    style: const TextStyle(
+                      color: Color(0xFFF1F5F9),
+                      fontSize: 23,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    lugar.categoria?.isNotEmpty == true
+                        ? lugar.categoria!
+                        : 'Sem categoria',
+                    style: const TextStyle(color: Color(0xFF22D3EE)),
+                  ),
+                  if (lugar.descricao.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    Text(
+                      lugar.descricao,
+                      style: const TextStyle(
+                        color: Color(0xFFCBD5E1),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.my_location_rounded,
+                        size: 18,
+                        color: Color(0xFF22D3EE),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${lugar.latitude.toStringAsFixed(5)}, '
+                        '${lugar.longitude.toStringAsFixed(5)}',
+                        style: const TextStyle(color: Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                  if (distancia != null) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      'Distância aproximada: ${_formatarDistancia(distancia)}',
+                      style: const TextStyle(color: Color(0xFFCBD5E1)),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      IconButton(
+                        tooltip: controller.ehFavorito(lugar.id)
+                            ? 'Remover dos favoritos'
+                            : 'Adicionar aos favoritos',
+                        onPressed: () => _alternarFavorito(controller, lugar),
+                        icon: Icon(
+                          controller.ehFavorito(lugar.id)
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          color: const Color(0xFFFF6B81),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => _abrirRotas(lugar),
+                          icon: const Icon(Icons.directions_rounded),
+                          label: const Text('Como chegar'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
+  Widget _fotoLugar(String caminho) {
+    final foto = caminho.trim();
+    final imagemIndisponivel = Container(
+      color: const Color(0xFF1E2C38),
+      alignment: Alignment.center,
+      child: const Icon(
+        Icons.broken_image_outlined,
+        color: Color(0xFF94A3B8),
+        size: 36,
+      ),
+    );
+
+    if (foto.startsWith('http://') || foto.startsWith('https://')) {
+      return Image.network(
+        foto,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => imagemIndisponivel,
+      );
+    }
+
+    return Image.file(
+      File(foto),
+      fit: BoxFit.cover,
+      errorBuilder: (_, _, _) => imagemIndisponivel,
+    );
+  }
+
+  Future<void> _alternarFavorito(
+    LugaresController controller,
+    LugaresModel lugar,
+  ) async {
+    try {
+      await controller.alternarFavorito(lugar);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  Future<void> _abrirRotas(LugaresModel lugar) async {
+    final destino =
+        '${lugar.latitude.toStringAsFixed(6)},${lugar.longitude.toStringAsFixed(6)}';
+    final uri = Uri.parse(
+      'https://www.google.com/maps/dir/?api=1&destination=$destino&travelmode=driving',
+    );
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível abrir o aplicativo de mapas.'),
+        ),
+      );
+    }
+  }
+
+  String _formatarDistancia(double metros) {
+    if (metros < 1000) return '${metros.round()} m';
+    return '${(metros / 1000).toStringAsFixed(1)} km';
+  }
+
   Widget _buildLugarCard(LugaresModel lugar) {
+    final controller = context.watch<LugaresController>();
+    final distancia = controller.distanciaAte(lugar);
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: const Color(0xFF111B24),
@@ -175,11 +296,32 @@ class _LugaresScreenState extends State<LugaresScreen> {
                         ),
                       ),
                     ],
+                    if (distancia != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'A ${_formatarDistancia(distancia)}',
+                        style: const TextStyle(
+                          color: Color(0xFFCBD5E1),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right_rounded, color: Color(0xFF64748B)),
+              IconButton(
+                tooltip: controller.ehFavorito(lugar.id)
+                    ? 'Remover dos favoritos'
+                    : 'Adicionar aos favoritos',
+                onPressed: () => _alternarFavorito(controller, lugar),
+                icon: Icon(
+                  controller.ehFavorito(lugar.id)
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  color: const Color(0xFFFF6B81),
+                ),
+              ),
             ],
           ),
         ),
@@ -239,11 +381,16 @@ class _LugaresScreenState extends State<LugaresScreen> {
     final controller = context.watch<LugaresController>();
     final nome =
         context.watch<AuthController>().usuario?.displayName?.trim() ?? '';
+    // Aplica a busca e, se escolhido, deixa na tela só os favoritos.
     final lugaresFiltrados = controller.lugares.where((lugar) {
       final termo = _busca.trim().toLowerCase();
-      return termo.isEmpty ||
+      final correspondeFavorito =
+          !_somenteFavoritos || controller.ehFavorito(lugar.id);
+      final correspondeBusca =
+          termo.isEmpty ||
           lugar.nome.toLowerCase().contains(termo) ||
           (lugar.categoria?.toLowerCase().contains(termo) ?? false);
+      return correspondeFavorito && correspondeBusca;
     }).toList();
 
     return Scaffold(
@@ -254,7 +401,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
             Icon(Icons.explore_rounded, color: Color(0xFF22D3EE), size: 24),
             SizedBox(width: 9),
             Text(
-              'Rota Ciano',
+              'Rota do Fabiano',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
             ),
           ],
@@ -314,6 +461,25 @@ class _LugaresScreenState extends State<LugaresScreen> {
                       prefixIcon: Icon(Icons.search_rounded),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      ChoiceChip(
+                        label: const Text('Todos'),
+                        selected: !_somenteFavoritos,
+                        onSelected: (_) =>
+                            setState(() => _somenteFavoritos = false),
+                      ),
+                      ChoiceChip(
+                        label: const Text('Favoritos'),
+                        selected: _somenteFavoritos,
+                        avatar: const Icon(Icons.favorite_rounded, size: 16),
+                        onSelected: (_) =>
+                            setState(() => _somenteFavoritos = true),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -321,10 +487,12 @@ class _LugaresScreenState extends State<LugaresScreen> {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Lugares para explorar',
-                      style: TextStyle(
+                      _somenteFavoritos
+                          ? 'Lugares favoritos'
+                          : 'Lugares para explorar',
+                      style: const TextStyle(
                         color: Color(0xFFF1F5F9),
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
@@ -332,7 +500,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                     ),
                   ),
                   Text(
-                    '${controller.lugares.length} locais',
+                    '${lugaresFiltrados.length} locais',
                     style: const TextStyle(
                       color: Color(0xFF22D3EE),
                       fontSize: 13,
@@ -404,16 +572,22 @@ class _LugaresScreenState extends State<LugaresScreen> {
                       )
                     : lugaresFiltrados.isEmpty
                     ? _estadoVazio(
-                        icone: _busca.isEmpty
+                        icone: _somenteFavoritos
+                            ? Icons.favorite_border_rounded
+                            : _busca.isEmpty
                             ? Icons.travel_explore_rounded
                             : Icons.search_off_rounded,
-                        titulo: _busca.isEmpty
+                        titulo: _somenteFavoritos
+                            ? 'Nenhum favorito'
+                            : _busca.isEmpty
                             ? 'Ainda não há lugares'
                             : 'Nenhum resultado',
-                        mensagem: _busca.isEmpty
+                        mensagem: _somenteFavoritos
+                            ? 'Toque no coração dos lugares para adicioná-los aqui.'
+                            : _busca.isEmpty
                             ? 'Cadastre o primeiro destino e comece a montar seu guia.'
                             : 'Tente buscar por outro nome ou categoria.',
-                        acao: _busca.isEmpty
+                        acao: !_somenteFavoritos && _busca.isEmpty
                             ? OutlinedButton.icon(
                                 onPressed: _abrirCadastro,
                                 icon: const Icon(Icons.add_rounded),

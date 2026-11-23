@@ -1,12 +1,22 @@
-# Rota Ciano
+# Rota do Fabiano
 
-Aplicativo Flutter de guia de turismo. Após entrar com uma conta existente, é
-possível consultar os lugares publicados pela API, pesquisar por nome ou
-categoria, ver descrição e coordenadas, atualizar a lista e cadastrar novos
-destinos. O mapa mostra os lugares que possuem coordenadas e permite consultar
-seus detalhes. No cadastro, um endereço ou CEP pode ser convertido em
-coordenadas pela API Nominatim do OpenStreetMap. A interface usa tema escuro
-com ciano como cor de destaque.
+Aplicativo Flutter para descobrir, cadastrar e explorar lugares turísticos.
+O app reúne destinos da API do Guia de Turismo e locais cadastrados pelo
+usuário, com mapa, GPS, favoritos e navegação externa.
+
+## Funcionalidades
+
+- Login com Google usando Firebase Authentication.
+- Busca de lugares por nome ou categoria.
+- Cadastro de locais com nome, categoria, descrição, coordenadas e foto.
+- Busca de coordenadas por endereço ou CEP usando o Nominatim.
+- Mapa OpenStreetMap com marcadores dos lugares, fotos e posição atual do
+  usuário.
+- Exibição da distância aproximada entre o usuário e cada lugar.
+- Favoritos associados à conta autenticada e armazenados no Cloud Firestore.
+- Abertura de rotas no Google Maps.
+- Armazenamento local dos lugares cadastrados, separado pelo UID do usuário,
+  usando `SharedPreferences`.
 
 ## Executar
 
@@ -15,24 +25,23 @@ flutter pub get
 flutter run
 ```
 
-## Dados e autenticação
+## Serviços e dados
 
-O aplicativo usa `https://guiaturismo.onrender.com`:
+- A API `https://guiaturismo.onrender.com` fornece os lugares e as categorias.
+  Os locais cadastrados pelo usuário também são salvos no dispositivo e
+  adicionados à lista.
+- O login usa Firebase Authentication e o login Google.
+- O Cloud Firestore armazena os favoritos por usuário.
+- Para publicar um local no OpenStreetMap, o app solicita autorização OAuth
+  com permissão `write_api`.
+- O mapa carrega tiles do OpenStreetMap e exibe atribuição aos colaboradores.
+- A busca de endereço usa o Nominatim. Consulte a
+  [política de uso do Nominatim](https://operations.osmfoundation.org/policies/nominatim/)
+  antes de aumentar o volume de consultas.
+- As rotas são abertas externamente no Google Maps.
 
-- `GET /lugares` para consultar os lugares exibidos na lista.
-- `GET /categorias` para carregar as categorias disponíveis no cadastro.
+## Configuração OAuth do OpenStreetMap
 
-O login do aplicativo continua sendo feito pelo Google/Firebase. Para cadastrar
-um local no OpenStreetMap, o aplicativo também solicita autorização da conta
-OSM com permissão de escrita (`write_api`). O cadastro cria um ponto no
-OpenStreetMap; ele não é enviado para a API do Guia de Turismo nem aparece na
-lista carregada por essa API.
-
-O mapa usa os tiles do OpenStreetMap e exibe a atribuição aos colaboradores.
-A busca de endereço envia uma consulta ao Nominatim; consulte a
-[política de uso do Nominatim](https://operations.osmfoundation.org/policies/nominatim/)
-antes de aumentar o volume de consultas.
-
-O identificador do app e o endereço de retorno OAuth precisam estar cadastrados
-nas configurações do aplicativo OAuth no OpenStreetMap. O endereço usado é
+O identificador do app e o endereço de retorno precisam estar cadastrados nas
+configurações do aplicativo OAuth no OpenStreetMap. O endereço usado é
 `com.guiaturismo.maps:/oauth2redirect`.

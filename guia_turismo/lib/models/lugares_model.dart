@@ -7,6 +7,7 @@ class LugaresModel {
   final double longitude;
   final String descricao;
   final int categoriaId;
+  final String? foto;
 
   LugaresModel({
     required this.id,
@@ -16,15 +17,17 @@ class LugaresModel {
     required this.latitude,
     required this.longitude,
     this.descricao = '',
+    this.foto,
   });
 
-  // Converte o formato recebido pela API para este modelo.
+  // Converte os dados da API ou do armazenamento local para um lugar.
   factory LugaresModel.fromJson(Map<String, dynamic> json) {
     final categoriaJson = json['categoria'];
     final categoria = categoriaJson is Map<String, dynamic>
         ? categoriaJson['nome']?.toString()
         : categoriaJson?.toString();
     double parseCoordenada(dynamic value) {
+      // A API pode enviar coordenadas como número ou como texto.
       if (value is num) return value.toDouble();
       return double.tryParse(value?.toString() ?? '') ?? 0;
     }
@@ -37,6 +40,24 @@ class LugaresModel {
       longitude: parseCoordenada(json['longitude']),
       descricao: json['descricao']?.toString() ?? '',
       categoriaId: (json['categoria_id'] as num?)?.toInt() ?? 0,
+      foto:
+          json['foto']?.toString() ??
+          json['foto_url']?.toString() ??
+          json['imagem']?.toString(),
     );
+  }
+
+  // Prepara o lugar para ser salvo localmente em JSON.
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'categoria': categoria,
+      'latitude': latitude,
+      'longitude': longitude,
+      'descricao': descricao,
+      'categoria_id': categoriaId,
+      'foto': foto,
+    };
   }
 }
