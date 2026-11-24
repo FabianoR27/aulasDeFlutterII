@@ -42,6 +42,19 @@ flutter run
 
 ## Configuração OAuth do OpenStreetMap
 
-O identificador do app e o endereço de retorno precisam estar cadastrados nas
-configurações do aplicativo OAuth no OpenStreetMap. O endereço usado é
-`com.guiaturismo.maps:/oauth2redirect`.
+Por padrão, o cadastro de locais aponta para a sandbox oficial do OpenStreetMap
+(`https://master.apis.dev.openstreetmap.org/`), evitando publicar dados de teste
+no mapa real.
+
+1. Crie uma conta na sandbox (`https://master.apis.dev.openstreetmap.org/`).
+2. Cadastre um aplicativo OAuth2 com a permissão `write_api` e o endereço de
+   retorno `com.guiaturismo.maps:/oauth2redirect`.
+3. Informe o Client ID gerado em `lib/services/osm_config.dart` ou passe-o ao
+   executar o aplicativo:
+
+```bash
+flutter run --dart-define=OSM_CLIENT_ID=SEU_CLIENT_ID_DA_SANDBOX
+```
+
+Para usar a API de produção do OpenStreetMap, adicione
+`--dart-define=OSM_USE_PRODUCTION=true`.

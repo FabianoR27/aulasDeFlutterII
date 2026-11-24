@@ -1,32 +1,13 @@
 import 'dart:convert';
 
-// import 'package:secure_shared_preferences/secure_shared_preferences.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/*class SessionService {
-  Future<void> salvarToken(String token) async {
-    final prefs = await SecureSharedPref.getInstance();
-    await prefs.putString('token', token, isEncrypted: true);
-  }
-
-  Future<String?> pegarToken() async {
-    final prefs = await SecureSharedPref.getInstance();
-    return prefs.getString('token', isEncrypted: true);
-  }
-
-  Future<void> logout() async {
-    final prefs = await SecureSharedPref.getInstance();
-    await prefs.clearAll();
-  }
-}*/
+// Cuida de salvar e ler no próprio celular os lugares que o usuário cadastrou.
 class SessionService {
-  static String nome = '';
-  static String email = '';
-
-  // Uma chave por conta evita misturar os locais de usuários diferentes.
+  // Monta uma chave separada por UID pra cada conta enxergar só os seus próprios cadastros.
   String _chaveLugares(String uid) => 'lugares_cadastrados_$uid';
 
-  // SharedPreferences guarda os locais como texto JSON no próprio aparelho.
+  // Converte a lista de lugares pra texto JSON e salva no SharedPreferences do aparelho.
   Future<void> salvarLugaresCadastrados(
     String uid,
     List<Map<String, dynamic>> lugares,
@@ -35,7 +16,7 @@ class SessionService {
     await prefs.setString(_chaveLugares(uid), jsonEncode(lugares));
   }
 
-  // Lê o JSON e devolve a lista pronta para virar objetos LugaresModel.
+  // Lê o texto JSON salvo no celular e transforma de volta em lista de mapas.
   Future<List<Map<String, dynamic>>> pegarLugaresCadastrados(String uid) async {
     final prefs = await SharedPreferences.getInstance();
     final dados = prefs.getString(_chaveLugares(uid));
@@ -43,45 +24,14 @@ class SessionService {
 
     try {
       final decoded = jsonDecode(dados);
+      // Garante que o JSON salvo realmente é uma lista antes de tentar ler os itens.
       if (decoded is! List) return [];
       return decoded.whereType<Map>().map((item) {
         return item.map((chave, valor) => MapEntry(chave.toString(), valor));
       }).toList();
     } catch (_) {
+      // Se o conteúdo salvo estiver corrompido, devolve lista vazia sem quebrar o app.
       return [];
     }
-  }
-
-  Future<String> pegarNome() async {
-    final prefs = await SharedPreferences.getInstance();
-    nome = prefs.getString('nome') ?? '';
-    return nome;
-  }
-
-  Future<String> pegarEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    email = prefs.getString('email') ?? '';
-    return email;
-  }
-
-  Future<void> salvarToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
-  }
-
-  Future<String?> pegarToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('token');
-  }
-
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-  }
-
-  Future<void> salvarUsuario(Map user) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('email', user['email']);
-    await prefs.setString('nome', user['nome']);
   }
 }

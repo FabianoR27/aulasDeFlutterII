@@ -1,12 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
+import 'package:guia_turismo/utils/lugar_helpers.dart';
+import 'package:guia_turismo/widgets/foto_lugar.dart';
+import 'package:guia_turismo/widgets/lugar_detalhes_sheet.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class MapaScreen extends StatefulWidget {
   const MapaScreen({super.key});
@@ -19,13 +19,13 @@ class _MapaScreenState extends State<MapaScreen> {
   @override
   void initState() {
     super.initState();
-    // Busca o GPS quando a tela abre para mostrar a posição no mapa.
+    // Busca o GPS quando o mapa abre; se estiver desligado ou bloqueado, mostra o atalho pras configurações.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
       final controller = context.read<LugaresController>();
       final aviso = await controller.iniciarLocalizacao();
       if (aviso != null && mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(aviso)));
+        mostrarAvisoLocalizacao(context, controller, aviso);
       }
     });
   }
@@ -34,8 +34,10 @@ class _MapaScreenState extends State<MapaScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<LugaresController>();
+    // Só entra no mapa quem tem latitude e longitude válidas.
     final lugares = controller.lugares.where(_temCoordenadas).toList();
-    // Centraliza o mapa nos lugares cadastrados; se estiver vazio, usa o Brasil.
+
+    // Centraliza o mapa na média das coordenadas dos lugares; se não tiver nenhum, centraliza no Brasil.
     final centro = lugares.isEmpty
         ? const LatLng(-14.2350, -51.9253)
         : LatLng(
@@ -59,11 +61,13 @@ class _MapaScreenState extends State<MapaScreen> {
                     initialZoom: lugares.length == 1 ? 12 : 4.5,
                   ),
                   children: [
+                    // Camada que baixa as imagens de mapa (tiles) do OpenStreetMap.
                     TileLayer(
                       urlTemplate:
                           'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                       userAgentPackageName: 'com.example.guia_turismo',
                     ),
+                    // Camada com os marcadores redondos de cada lugar cadastrado.
                     MarkerLayer(
                       markers: lugares
                           .map(
@@ -72,7 +76,9 @@ class _MapaScreenState extends State<MapaScreen> {
                               width: 58,
                               height: 58,
                               child: GestureDetector(
-                                onTap: () => _mostrarDetalhes(context, lugar),
+                                // Reaproveita o mesmo modal de detalhes usado na tela de lista.
+                                onTap: () =>
+                                    mostrarDetalhesLugar(context, lugar),
                                 child: Container(
                                   padding: const EdgeInsets.all(3),
                                   decoration: BoxDecoration(
@@ -89,8 +95,12 @@ class _MapaScreenState extends State<MapaScreen> {
                                       ),
                                     ],
                                   ),
+                                  // Usa FotoLugar sem fazer leitura síncrona de disco durante o build.
                                   child: ClipOval(
-                                    child: _fotoLugar(lugar, fit: BoxFit.cover),
+                                    child: FotoLugar(
+                                      caminhoFoto: lugar.foto,
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -98,6 +108,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           )
                           .toList(),
                     ),
+                    // Se o GPS já achou onde o usuário está, desenha o marcador azul dele no mapa.
                     if (controller.posicaoUsuario != null)
                       MarkerLayer(
                         markers: [
@@ -121,6 +132,7 @@ class _MapaScreenState extends State<MapaScreen> {
                       ),
                   ],
                 ),
+                // Aviso no topo do mapa caso não exista nenhum lugar válido pra desenhar.
                 if (lugares.isEmpty)
                   Positioned(
                     top: 16,
@@ -132,6 +144,7 @@ class _MapaScreenState extends State<MapaScreen> {
                           : 'Não foi possível carregar os lugares: ${controller.erro}',
                     ),
                   ),
+                // Créditos obrigatórios dos colaboradores do OpenStreetMap no canto inferior.
                 const Positioned(
                   left: 8,
                   bottom: 8,
@@ -162,7 +175,7 @@ class _MapaScreenState extends State<MapaScreen> {
     );
   }
 
-  // Ignora coordenadas ausentes ou fora dos limites geográficos válidos.
+  // Ignora coordenadas zeradas (0, 0) ou fora dos limites geográficos do planeta.
   bool _temCoordenadas(LugaresModel lugar) {
     return (lugar.latitude != 0 || lugar.longitude != 0) &&
         lugar.latitude >= -90 &&
@@ -171,173 +184,7 @@ class _MapaScreenState extends State<MapaScreen> {
         lugar.longitude <= 180;
   }
 
-  // Abre os dados básicos do lugar selecionado no marcador.
-  void _mostrarDetalhes(BuildContext context, LugaresModel lugar) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF111B24),
-      showDragHandle: true,
-      builder: (sheetContext) => Consumer<LugaresController>(
-        builder: (context, controller, _) {
-          final distancia = controller.distanciaAte(lugar);
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (lugar.foto?.isNotEmpty == true) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: SizedBox(
-                        height: 150,
-                        width: double.infinity,
-                        child: _fotoLugar(lugar, fit: BoxFit.cover),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  Text(
-                    lugar.nome,
-                    style: const TextStyle(
-                      color: Color(0xFFF1F5F9),
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    lugar.categoria?.isNotEmpty == true
-                        ? lugar.categoria!
-                        : 'Sem categoria',
-                    style: const TextStyle(color: Color(0xFF22D3EE)),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    '${lugar.latitude.toStringAsFixed(5)}, '
-                    '${lugar.longitude.toStringAsFixed(5)}',
-                    style: const TextStyle(color: Color(0xFF94A3B8)),
-                  ),
-                  if (distancia != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Distância aproximada: ${_formatarDistancia(distancia)}',
-                      style: const TextStyle(color: Color(0xFFCBD5E1)),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      IconButton(
-                        tooltip: controller.ehFavorito(lugar.id)
-                            ? 'Remover dos favoritos'
-                            : 'Adicionar aos favoritos',
-                        onPressed: () =>
-                            _alternarFavorito(context, controller, lugar),
-                        icon: Icon(
-                          controller.ehFavorito(lugar.id)
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: const Color(0xFFFF6B81),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _abrirRotas(lugar),
-                          icon: const Icon(Icons.directions_rounded),
-                          label: const Text('Como chegar'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Future<void> _alternarFavorito(
-    BuildContext context,
-    LugaresController controller,
-    LugaresModel lugar,
-  ) async {
-    try {
-      await controller.alternarFavorito(lugar);
-    } catch (e) {
-      if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  Future<void> _abrirRotas(LugaresModel lugar) async {
-    final destino =
-        '${lugar.latitude.toStringAsFixed(6)},${lugar.longitude.toStringAsFixed(6)}';
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$destino&travelmode=driving',
-    );
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Não foi possível abrir o aplicativo de mapas.'),
-          ),
-        );
-      }
-    }
-  }
-
-  String _formatarDistancia(double metros) {
-    if (metros < 1000) return '${metros.round()} m';
-    return '${(metros / 1000).toStringAsFixed(1)} km';
-  }
-
-  Widget _fotoLugar(LugaresModel lugar, {required BoxFit fit}) {
-    final foto = lugar.foto?.trim();
-    if (foto == null || foto.isEmpty) {
-      return Container(
-        color: const Color(0xFF1E2C38),
-        alignment: Alignment.center,
-        child: const Icon(
-          Icons.location_on_rounded,
-          color: Color(0xFF22D3EE),
-          size: 34,
-        ),
-      );
-    }
-
-    if (foto.startsWith('http://') || foto.startsWith('https://')) {
-      // Fotos da API são carregadas pela internet; as demais usam arquivo local.
-      return Image.network(
-        foto,
-        fit: fit,
-        errorBuilder: (_, _, _) =>
-            const Icon(Icons.broken_image_outlined, color: Color(0xFF94A3B8)),
-      );
-    }
-
-    final arquivo = File(foto);
-    if (arquivo.existsSync()) {
-      return Image.file(arquivo, fit: fit);
-    }
-
-    return Container(
-      color: const Color(0xFF1E2C38),
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.location_on_rounded,
-        color: Color(0xFF22D3EE),
-        size: 34,
-      ),
-    );
-  }
-
-  // Mantém mensagens de estado no mesmo padrão visual do aplicativo.
+  // Caixinha de aviso no mesmo padrão visual escuro do app.
   Widget _aviso(String mensagem) {
     return DecoratedBox(
       decoration: BoxDecoration(

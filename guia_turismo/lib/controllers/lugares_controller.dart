@@ -7,10 +7,15 @@ import 'package:geolocator/geolocator.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:guia_turismo/services/auth_service.dart';
 import 'package:guia_turismo/services/lugares_service.dart';
+import 'package:guia_turismo/services/osm_config.dart';
 import 'package:guia_turismo/services/osm_service.dart';
 import 'package:guia_turismo/services/session_service.dart';
+import 'package:guia_turismo/utils/lugar_helpers.dart';
 
 class LugaresController extends ChangeNotifier {
+  final AuthService _authService = AuthService();
+  final OsmService _osmService = OsmService();
+
   // Informa às telas quando uma consulta está em andamento.
   bool carregando = false;
   // Guarda a última mensagem de erro para mostrar ao usuário.
@@ -128,12 +133,19 @@ class LugaresController extends ChangeNotifier {
           });
       return null;
     } catch (e) {
-      return 'Não foi possível obter sua localização: $e';
+      return mensagemErroAmigavel(
+        e,
+        fallback: 'Não foi possível obter sua localização agora.',
+      );
     }
   }
 
+  // Abre a tela do Android pra ligar o GPS do aparelho.
   Future<void> abrirConfiguracoesLocalizacao() =>
       Geolocator.openLocationSettings();
+
+  // Abre as configurações do próprio app caso a permissão de localização tenha sido bloqueada.
+  Future<void> abrirConfiguracoesApp() => Geolocator.openAppSettings();
 
   @override
   void dispose() {
@@ -171,7 +183,10 @@ class LugaresController extends ChangeNotifier {
       }
       await carregarFavoritos();
     } catch (e) {
-      erro = 'Erro ao carregar os lugares: $e';
+      erro = mensagemErroAmigavel(
+        e,
+        fallback: 'Não foi possível carregar os lugares agora.',
+      );
     } finally {
       carregando = false;
       notifyListeners();
@@ -190,8 +205,7 @@ class LugaresController extends ChangeNotifier {
         throw StateError('Faça login com o Google para cadastrar um lugar.');
       }
 
-      final token = await AuthService().autenticarComOSM();
-      final idLocal = await OsmService().cadastrarLugar(dados, token);
+      final idLocal = await _publicarNoOsm(dados, usuario.uid);
       final idNumerico =
           int.tryParse(idLocal) ?? -DateTime.now().millisecondsSinceEpoch;
       final lugarCadastrado = LugaresModel(
@@ -228,13 +242,31 @@ class LugaresController extends ChangeNotifier {
       );
       if (!jaNaLista) _lugares = [..._lugares, lugarCadastrado];
       notifyListeners();
-      return 'Local cadastrado no OpenStreetMap. ID do ponto: $idLocal';
+      return 'Local cadastrado no ${OsmConfig.nomeAmbiente}. ID do ponto: $idLocal';
     } catch (e) {
-      erro = 'Erro ao cadastrar o lugar: $e';
+      erro = mensagemErroAmigavel(
+        e,
+        fallback: 'Não foi possível cadastrar o lugar agora.',
+      );
       return erro;
     } finally {
       carregando = false;
       notifyListeners();
+    }
+  }
+
+  // Reaproveita o token OAuth na sessão e refaz o login apenas se o OSM retornar 401.
+  Future<String> _publicarNoOsm(LugaresModel dados, String usuarioUid) async {
+    final token = await _authService.autenticarComOSM(usuarioUid: usuarioUid);
+    try {
+      return await _osmService.cadastrarLugar(dados, token);
+    } on OsmUnauthorizedException {
+      _authService.limparToken(usuarioUid: usuarioUid);
+      final novoToken = await _authService.autenticarComOSM(
+        usuarioUid: usuarioUid,
+        forcarNovoLogin: true,
+      );
+      return _osmService.cadastrarLugar(dados, novoToken);
     }
   }
 }

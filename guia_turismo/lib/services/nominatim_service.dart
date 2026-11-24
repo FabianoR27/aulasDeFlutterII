@@ -23,8 +23,10 @@ class NominatimService {
     });
     final cabecalhos = {'Accept-Language': 'pt-BR'};
     // Navegadores controlam o User-Agent e enviam o Referer automaticamente.
+    // No celular, mandamos o nome certinho do app como pede a política do Nominatim.
     if (!kIsWeb) {
-      cabecalhos['User-Agent'] = 'RotaCiano/1.0 (aplicativo de guia turistico)';
+      cabecalhos['User-Agent'] =
+          'Rota do Fabiano/1.0 (aplicativo de guia turistico)';
     }
     final resposta = await http.get(uri, headers: cabecalhos);
 

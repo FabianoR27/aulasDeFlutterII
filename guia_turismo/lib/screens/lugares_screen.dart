@@ -1,13 +1,12 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:guia_turismo/controllers/auth_controller.dart';
 import 'package:guia_turismo/controllers/lugares_controller.dart';
 import 'package:guia_turismo/models/lugares_model.dart';
 import 'package:guia_turismo/screens/cadastrar_lugar_screen.dart';
 import 'package:guia_turismo/screens/mapa_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:guia_turismo/utils/lugar_helpers.dart';
+import 'package:guia_turismo/widgets/lugar_detalhes_sheet.dart';
+import 'package:provider/provider.dart';
 
 class LugaresScreen extends StatefulWidget {
   const LugaresScreen({super.key});
@@ -19,19 +18,27 @@ class LugaresScreen extends StatefulWidget {
 class _LugaresScreenState extends State<LugaresScreen> {
   // Texto digitado pelo usuário para filtrar a lista.
   String _busca = '';
+  // Controla se a tela mostra todos os lugares ou só os favoritados.
   bool _somenteFavoritos = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<LugaresController>().listarLugares();
-        context.read<LugaresController>().iniciarLocalizacao();
+    // Assim que a tela termina de montar, já busca os lugares e liga o GPS.
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final controller = context.read<LugaresController>();
+      controller.listarLugares();
+
+      // Pede a localização do aparelho e avisa o usuário se o GPS estiver desligado/bloqueado.
+      final aviso = await controller.iniciarLocalizacao();
+      if (aviso != null && mounted) {
+        mostrarAvisoLocalizacao(context, controller, aviso);
       }
     });
   }
 
+  // Abre a tela de cadastro e, se um novo lugar foi salvo, recarrega a lista.
   Future<void> _abrirCadastro() async {
     final cadastrado = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(builder: (_) => const CadastrarLugarScreen()),
@@ -48,152 +55,26 @@ class _LugaresScreenState extends State<LugaresScreen> {
         .push(MaterialPageRoute<void>(builder: (_) => const MapaScreen()));
   }
 
+  // Desloga a conta do Google/Firebase e mostra um aviso amigável caso dê erro.
   Future<void> _sair() async {
     try {
       await context.read<AuthController>().deslogarUsuario();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Não foi possível encerrar a sessão: $e')),
-      );
-    }
-  }
-
-  void _mostrarDetalhes(LugaresModel lugar) {
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF111B24),
-      showDragHandle: true,
-      builder: (sheetContext) => Consumer<LugaresController>(
-        builder: (context, controller, _) {
-          final distancia = controller.distanciaAte(lugar);
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (lugar.foto?.trim().isNotEmpty == true) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(14),
-                      child: SizedBox(
-                        height: 170,
-                        width: double.infinity,
-                        child: _fotoLugar(lugar.foto!),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-                  Text(
-                    lugar.nome,
-                    style: const TextStyle(
-                      color: Color(0xFFF1F5F9),
-                      fontSize: 23,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    lugar.categoria?.isNotEmpty == true
-                        ? lugar.categoria!
-                        : 'Sem categoria',
-                    style: const TextStyle(color: Color(0xFF22D3EE)),
-                  ),
-                  if (lugar.descricao.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    Text(
-                      lugar.descricao,
-                      style: const TextStyle(
-                        color: Color(0xFFCBD5E1),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.my_location_rounded,
-                        size: 18,
-                        color: Color(0xFF22D3EE),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${lugar.latitude.toStringAsFixed(5)}, '
-                        '${lugar.longitude.toStringAsFixed(5)}',
-                        style: const TextStyle(color: Color(0xFF94A3B8)),
-                      ),
-                    ],
-                  ),
-                  if (distancia != null) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Distância aproximada: ${_formatarDistancia(distancia)}',
-                      style: const TextStyle(color: Color(0xFFCBD5E1)),
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      IconButton(
-                        tooltip: controller.ehFavorito(lugar.id)
-                            ? 'Remover dos favoritos'
-                            : 'Adicionar aos favoritos',
-                        onPressed: () => _alternarFavorito(controller, lugar),
-                        icon: Icon(
-                          controller.ehFavorito(lugar.id)
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          color: const Color(0xFFFF6B81),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: () => _abrirRotas(lugar),
-                          icon: const Icon(Icons.directions_rounded),
-                          label: const Text('Como chegar'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        SnackBar(
+          content: Text(
+            mensagemErroAmigavel(
+              e,
+              fallback: 'Não foi possível encerrar a sessão.',
             ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _fotoLugar(String caminho) {
-    final foto = caminho.trim();
-    final imagemIndisponivel = Container(
-      color: const Color(0xFF1E2C38),
-      alignment: Alignment.center,
-      child: const Icon(
-        Icons.broken_image_outlined,
-        color: Color(0xFF94A3B8),
-        size: 36,
-      ),
-    );
-
-    if (foto.startsWith('http://') || foto.startsWith('https://')) {
-      return Image.network(
-        foto,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => imagemIndisponivel,
+          ),
+        ),
       );
     }
-
-    return Image.file(
-      File(foto),
-      fit: BoxFit.cover,
-      errorBuilder: (_, _, _) => imagemIndisponivel,
-    );
   }
 
+  // Marca ou desmarca o lugar como favorito no Firestore.
   Future<void> _alternarFavorito(
     LugaresController controller,
     LugaresModel lugar,
@@ -202,35 +83,25 @@ class _LugaresScreenState extends State<LugaresScreen> {
       await controller.alternarFavorito(lugar);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.toString())));
-    }
-  }
-
-  Future<void> _abrirRotas(LugaresModel lugar) async {
-    final destino =
-        '${lugar.latitude.toStringAsFixed(6)},${lugar.longitude.toStringAsFixed(6)}';
-    final uri = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1&destination=$destino&travelmode=driving',
-    );
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível abrir o aplicativo de mapas.'),
+        SnackBar(
+          content: Text(
+            mensagemErroAmigavel(
+              e,
+              fallback: 'Não foi possível atualizar os favoritos.',
+            ),
+          ),
         ),
       );
     }
   }
 
-  String _formatarDistancia(double metros) {
-    if (metros < 1000) return '${metros.round()} m';
-    return '${(metros / 1000).toStringAsFixed(1)} km';
-  }
-
-  Widget _buildLugarCard(LugaresModel lugar) {
-    final controller = context.watch<LugaresController>();
+  // Monta cada card da lista usando o controller que o build já está escutando
+  // (evita chamar context.watch de novo pra cada item da lista).
+  Widget _buildLugarCard(LugaresController controller, LugaresModel lugar) {
     final distancia = controller.distanciaAte(lugar);
+    final favorito = controller.ehFavorito(lugar.id);
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       color: const Color(0xFF111B24),
@@ -240,11 +111,13 @@ class _LugaresScreenState extends State<LugaresScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
-        onTap: () => _mostrarDetalhes(lugar),
+        // Ao tocar no card, abre o modal compartilhado com todos os detalhes do lugar.
+        onTap: () => mostrarDetalhesLugar(context, lugar),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              // Ícone lateral do pin com fundo ciano suave.
               Container(
                 width: 52,
                 height: 52,
@@ -259,6 +132,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                 ),
               ),
               const SizedBox(width: 14),
+              // Coluna central com nome, categoria, resumo da descrição e distância.
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -299,7 +173,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                     if (distancia != null) ...[
                       const SizedBox(height: 6),
                       Text(
-                        'A ${_formatarDistancia(distancia)}',
+                        'A ${formatarDistancia(distancia)}',
                         style: const TextStyle(
                           color: Color(0xFFCBD5E1),
                           fontSize: 12,
@@ -310,13 +184,14 @@ class _LugaresScreenState extends State<LugaresScreen> {
                 ),
               ),
               const SizedBox(width: 8),
+              // Botão de coração pra favoritar direto no card sem precisar abrir os detalhes.
               IconButton(
-                tooltip: controller.ehFavorito(lugar.id)
+                tooltip: favorito
                     ? 'Remover dos favoritos'
                     : 'Adicionar aos favoritos',
                 onPressed: () => _alternarFavorito(controller, lugar),
                 icon: Icon(
-                  controller.ehFavorito(lugar.id)
+                  favorito
                       ? Icons.favorite_rounded
                       : Icons.favorite_border_rounded,
                   color: const Color(0xFFFF6B81),
@@ -329,6 +204,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
     );
   }
 
+  // Tela de aviso padrão pra quando não tem resultado, favoritos ou deu erro na API.
   Widget _estadoVazio({
     required IconData icone,
     required String titulo,
@@ -378,20 +254,18 @@ class _LugaresScreenState extends State<LugaresScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Escuta o controller uma única vez aqui no build principal.
     final controller = context.watch<LugaresController>();
     final nome =
         context.watch<AuthController>().usuario?.displayName?.trim() ?? '';
-    // Aplica a busca e, se escolhido, deixa na tela só os favoritos.
-    final lugaresFiltrados = controller.lugares.where((lugar) {
-      final termo = _busca.trim().toLowerCase();
-      final correspondeFavorito =
-          !_somenteFavoritos || controller.ehFavorito(lugar.id);
-      final correspondeBusca =
-          termo.isEmpty ||
-          lugar.nome.toLowerCase().contains(termo) ||
-          (lugar.categoria?.toLowerCase().contains(termo) ?? false);
-      return correspondeFavorito && correspondeBusca;
-    }).toList();
+
+    // Usa a função auxiliar pra filtrar por nome/categoria e por favoritos.
+    final lugaresFiltrados = filtrarLugares(
+      controller.lugares,
+      busca: _busca,
+      somenteFavoritos: _somenteFavoritos,
+      ehFavorito: controller.ehFavorito,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -435,6 +309,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Cabeçalho com saudação, campo de busca e filtros "Todos" / "Favoritos".
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
               child: Column(
@@ -483,6 +358,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                 ],
               ),
             ),
+            // Linha com o título da seção e o total de locais encontrados.
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
@@ -510,6 +386,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                 ],
               ),
             ),
+            // Se deu erro ao recarregar mas já tinha lugares na tela, mostra um banner discreto.
             if (controller.erro.isNotEmpty && controller.lugares.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
@@ -548,6 +425,7 @@ class _LugaresScreenState extends State<LugaresScreen> {
                   ),
                 ),
               ),
+            // Lista principal com puxar pra atualizar (pull-to-refresh).
             Expanded(
               child: RefreshIndicator(
                 color: const Color(0xFF22D3EE),
@@ -599,8 +477,10 @@ class _LugaresScreenState extends State<LugaresScreen> {
                         physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
                         itemCount: lugaresFiltrados.length,
-                        itemBuilder: (context, index) =>
-                            _buildLugarCard(lugaresFiltrados[index]),
+                        itemBuilder: (context, index) => _buildLugarCard(
+                          controller,
+                          lugaresFiltrados[index],
+                        ),
                       ),
               ),
             ),

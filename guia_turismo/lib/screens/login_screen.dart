@@ -55,8 +55,9 @@ class LoginScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 30),
+                      // Nome principal do app exibido no topo da tela de login.
                       const Text(
-                        'ROTA CIANO',
+                        'ROTA DO FABIANO',
                         style: TextStyle(
                           color: Color(0xFF22D3EE),
                           fontSize: 12,
