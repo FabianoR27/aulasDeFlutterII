@@ -1,44 +1,26 @@
+// Configurações fixas da sandbox do OpenStreetMap usada pra cadastrar lugares sem mexer no mapa real.
 class OsmConfig {
   const OsmConfig._();
 
-  // Usa a sandbox oficial do OpenStreetMap por padrão para evitar dados de teste
-  // no mapa real. Para apontar para produção, rode com:
-  // --dart-define=OSM_USE_PRODUCTION=true
-  static const bool usarProducao = bool.fromEnvironment(
-    'OSM_USE_PRODUCTION',
-    defaultValue: false,
-  );
+  // Endereço da sandbox oficial de testes do OpenStreetMap.
+  static const String host = 'master.apis.dev.openstreetmap.org';
 
-  static const String host = usarProducao
-      ? 'www.openstreetmap.org'
-      : 'master.apis.dev.openstreetmap.org';
+  // URL base da API 0.6 da sandbox onde o app cria o changeset e o ponto no mapa.
+  static const String apiBaseUrl = 'https://$host/api/0.6';
 
-  static const String apiBaseUrl = usarProducao
-      ? 'https://api.openstreetmap.org/api/0.6'
-      : 'https://master.apis.dev.openstreetmap.org/api/0.6';
-
+  // Endereços do OAuth2 da sandbox pra pedir permissão pro usuário e pegar o token.
   static const String authorizationEndpoint = 'https://$host/oauth2/authorize';
   static const String tokenEndpoint = 'https://$host/oauth2/token';
 
+  // Link de retorno cadastrado no app OAuth da sandbox pra voltar pro aplicativo depois do login.
   static const String redirectUrl = 'com.guiaturismo.maps:/oauth2redirect';
 
-  // Client ID do aplicativo OAuth2 criado na sandbox
-  // (https://master.apis.dev.openstreetmap.org).
-  // Você pode preencher o defaultValue abaixo ou passar em tempo de execução:
-  // --dart-define=OSM_CLIENT_ID=SEU_CLIENT_ID_DA_SANDBOX
-  static const String _clientIdSandbox = String.fromEnvironment(
+  // Client ID do aplicativo OAuth2 criado na sandbox (dá pra sobrescrever via --dart-define se precisar).
+  static const String clientId = String.fromEnvironment(
     'OSM_CLIENT_ID',
     defaultValue: 'opFkZC4VwF0OhOKbNXmCGLbrKGqeq1uFOU22mRjJgUQ',
   );
 
-  static const String _clientIdProducao = String.fromEnvironment(
-    'OSM_PROD_CLIENT_ID',
-    defaultValue: 'FsjB0m9plLoZYIZWLRO-8RnuKcNtDr_HXDJ2bM-HAMU',
-  );
-
-  static String get clientId =>
-      usarProducao ? _clientIdProducao : _clientIdSandbox;
-
-  static String get nomeAmbiente =>
-      usarProducao ? 'OpenStreetMap' : 'OpenStreetMap (Sandbox)';
+  // Nome mostrado nas mensagens pro usuário saber que o cadastro foi feito na sandbox.
+  static const String nomeAmbiente = 'OpenStreetMap (Sandbox)';
 }

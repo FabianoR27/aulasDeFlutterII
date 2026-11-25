@@ -36,7 +36,7 @@ class OsmService {
     final changesetId = int.tryParse(changesetResponse.body.trim());
     if (changesetId == null) {
       throw const FormatException(
-        'O OpenStreetMap retornou um changeset inválido.',
+        'O ${OsmConfig.nomeAmbiente} retornou um changeset inválido.',
       );
     }
 
@@ -45,7 +45,7 @@ class OsmService {
           .put(
             Uri.parse('$_baseUrl/node/create'),
             headers: headers,
-            body: montarXmlLugar(lugar, changesetId),
+            body: _montarXmlLugar(lugar, changesetId),
           )
           .timeout(_timeout);
       _validarResposta(nodeResponse, 'cadastrar o local');
@@ -53,7 +53,7 @@ class OsmService {
       final nodeId = nodeResponse.body.trim();
       if (nodeId.isEmpty) {
         throw const FormatException(
-          'O OpenStreetMap não retornou o ID do local.',
+          'O ${OsmConfig.nomeAmbiente} não retornou o ID do local.',
         );
       }
 
@@ -89,10 +89,8 @@ class OsmService {
       '<tag k="comment" v="Cadastro de local pelo Rota do Fabiano"/>'
       '</changeset></osm>';
 
-  // Monta o XML do ponto que vai ser enviado pro OpenStreetMap com as tags da categoria.
-  // Deixado visível para testes unitários garantirem que o escape e as tags estão certos.
-  @visibleForTesting
-  String montarXmlLugar(LugaresModel lugar, int changesetId) {
+  // Monta o XML do ponto que vai ser enviado pra sandbox do OpenStreetMap com as tags da categoria.
+  String _montarXmlLugar(LugaresModel lugar, int changesetId) {
     final tags = <String, String>{
       'name': lugar.nome,
       if (lugar.descricao.isNotEmpty) 'description': lugar.descricao,

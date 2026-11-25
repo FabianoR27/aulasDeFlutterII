@@ -40,9 +40,9 @@ flutter run
   antes de aumentar o volume de consultas.
 - As rotas são abertas externamente no Google Maps.
 
-## Configuração OAuth do OpenStreetMap
+## Configuração OAuth do OpenStreetMap (Sandbox)
 
-Por padrão, o cadastro de locais aponta para a sandbox oficial do OpenStreetMap
+O cadastro de locais usa exclusivamente a sandbox oficial do OpenStreetMap
 (`https://master.apis.dev.openstreetmap.org/`), evitando publicar dados de teste
 no mapa real.
 
@@ -55,6 +55,3 @@ no mapa real.
 ```bash
 flutter run --dart-define=OSM_CLIENT_ID=SEU_CLIENT_ID_DA_SANDBOX
 ```
-
-Para usar a API de produção do OpenStreetMap, adicione
-`--dart-define=OSM_USE_PRODUCTION=true`.
